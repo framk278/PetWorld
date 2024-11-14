@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "C:/apps/PetWorld/www"
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "PetWorld"
+	}
+}

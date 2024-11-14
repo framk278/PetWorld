@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Perfil</title>
+    <link rel="stylesheet" href="css/editarPerfil.css">
+    <link rel="icon" href="img/Capa_1.png">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="js/firebase-config.js"></script>
+</head>
+<body>
+    <div class="edit-container">
+        <h1>Editar perfil</h1>
+        
+        <div class="profile-photo-section">
+            <img src="img/default-profile.jpg" alt="Foto de Perfil" id="profilePreview">
+            <div class="photo-controls">
+                <span id="userName" class="username">Cargando...</span>
+                <button id="changePhotoBtn" class="change-photo-btn">Cambiar foto</button>
+                <input type="file" id="photoInput" accept="image/*" style="display: none;">
+            </div>
+        </div>
+
+        <form id="editProfileForm">
+            <div class="form-group">
+                <label for="fullName">Nombre completo</label>
+                <input type="text" id="fullName" name="fullName" required>
+            </div>
+
+            <div class="form-group">
+                <label for="bio">Descripción</label>
+                <textarea id="bio" name="bio" maxlength="150" rows="3"></textarea>
+                <span class="char-count">0/150</span>
+            </div>
+
+            <div class="form-group">
+                <label for="gender">Género</label>
+                <select id="gender" name="gender">
+                    <option value="">Prefiero no decirlo</option>
+                    <option value="male">Hombre</option>
+                    <option value="female">Mujer</option>
+                    <option value="other">Otro</option>
+                </select>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="save-btn">Guardar cambios</button>
+                <button type="button" class="cancel-btn" onclick="window.location.href='Perfil.html'">Cancelar</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const database = firebase.database();
+        const storage = firebase.storage();
+        let currentUser = null;
+
+        // Cargar datos del usuario
+        async function loadUserData() {
+            firebase.auth().onAuthStateChanged(async (user) => {
+                if (user) {
+                    try {
+                        currentUser = user;
+                        const userRef = database.ref('users/' + user.uid);
+                        const snapshot = await userRef.once('value');
+                        const userData = snapshot.val();
+
+                        if (userData) {
+                            document.getElementById('userName').textContent = userData.fullName;
+                            document.getElementById('fullName').value = userData.fullName;
+                            document.getElementById('bio').value = userData.bio || '';
+                            document.getElementById('gender').value = userData.gender || '';
+                            
+                            if (userData.photoURL) {
+                                document.getElementById('profilePreview').src = userData.photoURL;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error al cargar datos:', error);
+                        alert('Error al cargar los datos del perfil');
+                    }
+                } else {
+                    window.location.href = 'login.html';
+                }
+            });
+        }
+
+        // Manejar cambio de foto
+        async function handlePhotoChange(file) {
+            try {
+                const user = firebase.auth().currentUser;
+                if (!user) return;
+
+                const storageRef = storage.ref(`users/${user.uid}/profile/${file.name}`);
+                await storageRef.put(file);
+                const photoURL = await storageRef.getDownloadURL();
+
+                await database.ref(`users/${user.uid}`).update({
+                    photoURL: photoURL
+                });
+
+                document.getElementById('profilePreview').src = photoURL;
+            } catch (error) {
+                console.error('Error al cambiar foto:', error);
+                alert('Error al actualizar la foto de perfil');
+            }
+        }
+
+        // Manejar envío del formulario
+        async function handleSubmit(e) {
+            e.preventDefault();
+            try {
+                const user = firebase.auth().currentUser;
+                if (!user) return;
+
+                const updates = {
+                    fullName: document.getElementById('fullName').value,
+                    bio: document.getElementById('bio').value,
+                    gender: document.getElementById('gender').value
+                };
+
+                await database.ref(`users/${user.uid}`).update(updates);
+                window.location.href = 'Perfil.html';
+            } catch (error) {
+                console.error('Error al guardar cambios:', error);
+                alert('Error al guardar los cambios');
+            }
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Verificar autenticación al cargar la página
+            const user = firebase.auth().currentUser;
+            if (user) {
+                loadUserData();
+            } else {
+                firebase.auth().onAuthStateChanged((user) => {
+                    if (user) {
+                        loadUserData();
+                    } else {
+                        window.location.href = 'login.html';
+                    }
+                });
+            }
+        });
+
+        document.getElementById('changePhotoBtn').addEventListener('click', () => {
+            document.getElementById('photoInput').click();
+        });
+
+        document.getElementById('photoInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handlePhotoChange(file);
+            }
+        });
+
+        document.getElementById('bio').addEventListener('input', function() {
+            const charCount = this.value.length;
+            document.querySelector('.char-count').textContent = `${charCount}/150`;
+        });
+
+        document.getElementById('editProfileForm').addEventListener('submit', handleSubmit);
+    </script>
+</body>
+</html> 

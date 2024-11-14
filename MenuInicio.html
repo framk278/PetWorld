@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Petworld</title>
+    <link rel="stylesheet" href="css/MenuInicio.css">
+    <link rel="icon"  href="img/Capa_1.png">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+</head>
+<body>
+    <header>
+        <div class="search-bar">
+            <img src="Img/Capa_1.png" alt="Logo Gato" class="logo">
+            <input type="text" id="searchInput" placeholder="Buscar usuarios...">
+        </div>
+    </header>
+
+    <nav class="nav-bar">
+       <a href="Veterinarias.html" style="text-decoration: none; color: #000;"> <div class="nav-item">
+            <img src="Img/Veterinarias.png" alt="Veterinaria">
+            <p>Veterinaria</p>
+        </div>
+    </a>
+       <a href="Perdido.html" style="text-decoration: none; color: #000;"> <div class="nav-item">
+            <img src="Img/mascota_perdida.png" alt="Mascotas Perdidas">
+            <p>Mascotas Perdidas</p>
+        </div>
+    </a>
+       <a href="Articulos.html" style="text-decoration: none; color: #000;"> <div class="nav-item">
+            <img src="Img/Accesorios.png" alt="Accesorios">
+            <p>Accesorios</p>
+        </div>
+    </a>
+      <a href="Tienda.html" style="text-decoration: none; color: #000;">  <div class="nav-item">
+            <img src="Img/servicios.png" alt="Servicios de Cuidado">
+            <p>Servicios de Cuidados</p>
+        </div>
+    </a>
+    </nav>  
+
+
+
+    <footer class="footer">
+        <div class="footer-item">
+            <img src="Img/home.png" alt="Inicio">
+        </div>
+        <div class="footer-item">
+            <img src="Img/calendario (1).png" alt="Calendario">
+        </div>
+        <div class="footer-item">
+            <img src="Img/recordatorio.png" alt="Publicaciones">
+        </div>
+        <div class="footer-item">
+            <img src="Img/campana (1).png" alt="Notificaciones">
+        </div>
+        <div class="footer-item">
+            <button class="toggle-sidebar"><img src="Img/Union.png" alt="Perfil"></button>
+        </div>
+    </footer>
+    <nav class="sidebar">
+        <div class="sidebar-profile" style="display: flex; align-items: center;">
+            <a href="Perfil.html"> <img id="userProfilePic" class="user-pic, sidebar-profile-pic" src="img/default-profile.jpg"alt="Foto de perfil"> </a>
+            <h2 id="userName">Nombre de Usuario</h2>
+        </div>
+
+        <div style="display: flex; flex-direction: column; padding-top: 300%;">
+            <a href="" style="margin-bottom: 10px; text-decoration: none; color: #000;">Guardado</a>
+
+            <a href="" style="margin-bottom: 10px; text-decoration: none; color: #000;">Agenda</a>
+
+            <a href="" style="margin-bottom: 10px; text-decoration: none; color: #000;">Adoptar</a>
+
+            <a href="" style="margin-bottom: 10px; text-decoration: none; color: #000;">Servicio funenaria</a>
+
+            <a href="" style="margin-bottom: 10px; text-decoration: none; color: #000;">Aprende primeros  auxilios</a>
+
+            <a href="" style="margin-bottom: 10px; text-decoration: none; color: #000;">Ayuda y soporte</a>
+
+            <a href="" style="margin-bottom: 10px; text-decoration: none; color: #000;">Configuracion y privacidad</a>
+
+            <button id="logoutButton" style="background: none; border: none; margin-right: 100px; cursor: pointer; color: #000;"> <p style="font-size: 18px;">Cerrar sesión</p></button>            <div id="myModal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>¿Seguro que quieres cerrar sesión?</h2>
+                    <button id="confirmLogout">ACEPTAR</button>
+                    <button id="cancelLogout">RECHAZAR</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Agregar este div donde quieras mostrar los posts -->
+    <div class="posts-container">
+        <!-- Los posts se cargarán aquí dinámicamente -->
+    </div>
+
+    <script>
+    // Función para cargar posts en el feed principal
+    function loadPosts() {
+        const postsRef = database.ref('posts');
+        
+        postsRef.orderByChild('timestamp')
+            .on('value', (snapshot) => {
+                const postsContainer = document.querySelector('.posts-container');
+                postsContainer.innerHTML = ''; // Limpiar contenedor existente
+                
+                const posts = [];
+                snapshot.forEach((childSnapshot) => {
+                    posts.push({
+                        id: childSnapshot.key,
+                        ...childSnapshot.val()
+                    });
+                });
+
+                // Ordenar posts del más reciente al más antiguo
+                posts.sort((a, b) => b.timestamp - a.timestamp);
+
+                // Crear y mostrar cada post
+                posts.forEach(post => {
+                    const postElement = createPostElement(post);
+                    postsContainer.appendChild(postElement);
+                });
+            });
+    }
+
+    // Función para crear el elemento del post
+    function createPostElement(post) {
+        const postDiv = document.createElement('div');
+        postDiv.className = 'post';
+        postDiv.innerHTML = `
+            <div class="post-header">
+                <div class="user-info">
+                    <img src="${post.userPhoto}" alt="Foto de perfil" class="profile-pic">
+                    <div class="user-details">
+                        <span class="username">${post.userName}</span>
+                        ${post.location ? `<span class="location">${post.location}</span>` : ''}
+                    </div>
+                </div>
+                <button class="more-options">•••</button>
+            </div>
+            <div class="post-image">
+                <img src="${post.imageUrl}" alt="Imagen del post">
+            </div>
+            <div class="post-actions">
+                <div class="action-buttons">
+                    <button class="like-btn" data-post-id="${post.id}">♥</button>
+                    <button class="comment-btn">💬</button>
+                    <button class="share-btn">↪</button>
+                </div>
+                <button class="save-btn">🔖</button>
+            </div>
+            <div class="post-likes">
+                <span><strong>${post.likes || 0}</strong> Me gusta</span>
+            </div>
+            <div class="post-description">
+                <span class="username"><strong>${post.userName}</strong></span>
+                <span class="description">${post.description}</span>
+            </div>
+            <div class="post-time">
+                ${formatTimestamp(post.timestamp)}
+            </div>
+            <div class="add-comment">
+                <input type="text" placeholder="Añade un comentario...">
+                <button>Publicar</button>
+            </div>
+        `;
+
+        return postDiv;
+    }
+
+    // Función para formatear el timestamp
+    function formatTimestamp(timestamp) {
+        const now = Date.now();
+        const diff = now - timestamp;
+        
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+
+        if (days > 0) {
+            return `HACE ${days} ${days === 1 ? 'DÍA' : 'DÍAS'}`;
+        } else if (hours > 0) {
+            return `HACE ${hours} ${hours === 1 ? 'HORA' : 'HORAS'}`;
+        } else if (minutes > 0) {
+            return `HACE ${minutes} ${minutes === 1 ? 'MINUTO' : 'MINUTOS'}`;
+        } else {
+            return 'HACE UN MOMENTO';
+        }
+    }
+
+    // Inicializar la carga de posts cuando el documento esté listo
+    document.addEventListener('DOMContentLoaded', () => {
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                loadPosts();
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+    });
+    </script>
+
+    <style>
+    /* Estilos para los posts */
+    .post {
+        background-color: #fff;
+        border: 1px solid #dbdbdb;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        max-width: 600px;
+        width: 100%;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .post-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px;
+        border-bottom: 1px solid #efefef;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .profile-pic {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 1px solid #efefef;
+    }
+
+    .user-details {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .username {
+        color: #262626;
+        font-weight: 600;
+    }
+
+    .location {
+        color: #8e8e8e;
+        font-size: 12px;
+    }
+
+    .more-options {
+        background: none;
+        border: none;
+        color: #262626;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    .post-image {
+        border-top: 1px solid #efefef;
+        border-bottom: 1px solid #efefef;
+    }
+
+    .post-image img {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    .post-actions {
+        display: flex;
+        justify-content: space-between;
+        padding: 14px;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 16px;
+    }
+
+    .action-buttons button,
+    .save-btn {
+        background: none;
+        border: none;
+        color: #262626;
+        cursor: pointer;
+        font-size: 24px;
+    }
+
+    .post-likes,
+    .post-description {
+        padding: 0 14px;
+        margin-bottom: 8px;
+        color: #262626;
+    }
+
+    .post-time {
+        padding: 0 14px;
+        margin-bottom: 8px;
+        color: #8e8e8e;
+        font-size: 12px;
+    }
+
+    .add-comment {
+        display: flex;
+        padding: 14px;
+        border-top: 1px solid #efefef;
+    }
+
+    .add-comment input {
+        flex: 1;
+        background: none;
+        border: none;
+        color: #262626;
+        padding: 8px;
+    }
+
+    .add-comment input::placeholder {
+        color: #8e8e8e;
+    }
+
+    .add-comment button {
+        background: none;
+        border: none;
+        color: #0095f6;
+        font-weight: 600;
+        cursor: pointer;
+        opacity: 0.7;
+    }
+
+    .add-comment button:hover {
+        opacity: 1;
+    }
+
+    /* Estilos para el contenedor de posts */
+    .posts-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+        background-color: #fafafa;
+    }
+
+    .search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        max-height: 300px;
+        overflow-y: auto;
+        display: none;
+        z-index: 1000;
+        margin-top: 5px;
+    }
+
+    .search-result-item {
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .search-result-item:last-child {
+        border-bottom: none;
+    }
+
+    .search-result-item:hover {
+        background-color: #f5f5f5;
+    }
+
+    .search-result-item img {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .user-info-search {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .user-info-search .fullname {
+        font-weight: 600;
+        color: #262626;
+    }
+
+    .user-info-search .petname {
+        font-size: 0.9em;
+        color: #8e8e8e;
+    }
+
+    .search-bar {
+        position: relative;
+    }
+
+    .search-result-item.selected {
+        background-color: #f0f0f0;
+    }
+
+    .search-result-item:hover {
+        background-color: #f0f0f0;
+    }
+    </style>
+</body>
+<script src="js/likes.js"></script>
+<script src="js/side-bar.js"></script>
+<script src="js/emergente.js"></script>
+<script src="js/search.js"></script>
+<script src="js/firebaseRE.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/firebaseConfig.js"></script>
+
+</html>
+

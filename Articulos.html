@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PetWorld</title>
+    <link rel="stylesheet" href="css/articulos.css">
+    <link rel="icon"  href="img/Capa_1.png">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+</head>
+<body>
+
+    <header>
+        <div class="search-bar">
+            <a href="MenuInicio.html">  <img src="Img/Capa_1.png" alt="Logo Gato" class="logo"> </a>
+            <input type="text" id="searchInput" placeholder="Buscar">
+        </div>
+    </header>
+
+    <nav class="nav-bar">
+        <a href="Veterinarias.html" style="text-decoration: none; color: #000;"> <div class="nav-item">
+             <img src="Img/Veterinarias.png" alt="Veterinaria">
+             <p>Veterinaria</p>
+         </div>
+     </a>
+        <a href="Perdido.html" style="text-decoration: none; color: #000;"> <div class="nav-item">
+             <img src="Img/mascota_perdida.png" alt="Mascotas Perdidas">
+             <p>Mascotas Perdidas</p>
+         </div>
+     </a>
+        <div class="nav-item">
+             <img src="Img/Accesorios.png" alt="Accesorios">
+             <p>Accesorios</p>
+         </div>
+     
+       <a href="Tienda.html" style="text-decoration: none; color: #000;">  <div class="nav-item">
+             <img src="Img/servicios.png" alt="Servicios de Cuidado">
+             <p>Servicios de Cuidados</p>
+         </div>
+     </a>
+     </nav>  
+
+    <!-- Sección de productos -->
+    <section class="products">
+        <div class="product-item">
+            <img src="kit-aseo.jpg" alt="Kit de aseo">
+            <p>Kit de aseo</p>
+            <span>$20.000</span>
+        </div>
+        <div class="product-item">
+            <img src="correa.jpg" alt="Correa de pasear">
+            <p>Correa de pasear</p>
+            <span>$15.000</span>
+        </div>
+        <div class="product-item">
+            <img src="collar.jpg" alt="Collar">
+            <p>Collar</p>
+            <span>$15.000</span>
+        </div>
+        <div class="product-item">
+            <img src="pelota.jpg" alt="Pelotas de juguete">
+            <p>Pelotas de juguetes</p>
+            <span>$15.000</span>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-item">
+            <img src="Img/home.png" alt="Inicio">
+        </div>
+        <div class="footer-item">
+            <img src="Img/calendario (1).png" alt="Calendario">
+        </div>
+        <div class="footer-item">
+            <img src="Img/recordatorio.png" alt="Publicaciones">
+        </div>
+        <div class="footer-item">
+            <img src="Img/campana (1).png" alt="Notificaciones">
+        </div>
+        <div class="footer-item">
+            <button class="toggle-sidebar"><img src="Img/Union.png" alt="Perfil"></button>
+        </div>
+    </footer>
+    <nav class="sidebar">
+        <div class="sidebar-profile" style="display: flex; align-items: center;">
+            <a href="Perfil.html"> <img id="userProfilePic" class="user-pic, sidebar-profile-pic" src="img/default-profile.jpg"alt="Foto de perfil"> </a>
+            <h2 id="userName">Nombre de Usuario</h2>
+        </div>
+
+        <div style="display: flex; flex-direction: column; padding-top: 300%;">
+            <a href="" style="margin-bottom: 10px; text-decoration: none; color: #000;">Guardado</a>
+
+            <a href="" style="margin-bottom: 10px; text-decoration: none; color: #000;">Agenda</a>
+
+            <a href="" style="margin-bottom: 10px; text-decoration: none; color: #000;">Adoptar</a>
+
+            <a href="" style="margin-bottom: 10px; text-decoration: none; color: #000;">Servicio funenaria</a>
+
+            <a href="" style="margin-bottom: 10px; text-decoration: none; color: #000;">Aprende primeros  auxilios</a>
+
+            <a href="" style="margin-bottom: 10px; text-decoration: none; color: #000;">Ayuda y soporte</a>
+
+            <a href="" style="margin-bottom: 10px; text-decoration: none; color: #000;">Configuracion y privacidad</a>
+
+            <button id="logoutButton" style="background: none; border: none; margin-right: 100px; cursor: pointer; color: #000;"> <p style="font-size: 18px;">Cerrar sesión</p></button>            <div id="myModal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>¿Seguro que quieres cerrar sesión?</h2>
+                    <button id="confirmLogout">ACEPTAR</button>
+                    <button id="cancelLogout">RECHAZAR</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+</body>
+<script src="js/side-bar.js"></script>
+<script src="js/emergente.js"></script>
+<script src="js/search.js"></script>
+<script src="js/firebaseRE.js"></script>
+<script src="js/auth.js"></script>
+</html>
+

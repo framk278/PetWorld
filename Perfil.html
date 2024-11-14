@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil de Usuario</title>
+    <link rel="stylesheet" href="css/perfil.css">
+    <link rel="icon" href="img/Capa_1.png">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/likes.js"></script>
+</head>
+<body>
+    <!-- Encabezado del perfil -->
+    <header class="profile-header">
+        <div class="nav-buttons">
+            <button onclick="window.location.href='MenuInicio.html'" class="back-btn">
+                ← Volver al inicio
+            </button>
+        </div>
+        <img src="img/default-profile.jpg" alt="Foto de Perfil" class="profile-pic" id="profilePic">
+        <div class="user-info">
+            <h1 id="nombreUsuario">Cargando...</h1>
+            <div class="stats">
+                <div id="publicaciones-count">
+                    <strong>0</strong>
+                    <p>publicación</p>
+                </div>
+                <div id="seguidores-count">
+                    <strong>0</strong>
+                    <p>seguidores</p>
+                </div>
+                <div id="seguidos-count">
+                    <strong>0</strong>
+                    <p>seguidos</p>
+                </div>
+            </div>
+            <p class="bio" id="userBio"></p>
+            <div class="profile-buttons">
+                <button id="editProfileBtn" class="edit-btn">Editar perfil</button>
+                <button id="logoutBtn" class="logout-btn">Cerrar sesión</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="tabs">
+        <div class="tab active">PUBLICACIONES</div>
+        <div class="tab">GUARDADAS</div>
+        <div class="tab">ETIQUETADAS</div>
+    </div>
+
+    <!-- Modifica la estructura después de las tabs -->
+    <div class="content-section">
+        <div class="upload-button">
+            <label for="imageInput" class="add-post-label">
+                <img src="img/agregar.png" alt="Añadir publicación" class="add-post-icon">
+            </label>
+            <input type="file" id="imageInput" accept="image/*" style="display: none;">
+        </div>
+
+        <div class="image-gallery" id="imageGallery">
+            <!-- Las imágenes se cargarán dinámicamente aquí -->
+        </div>
+    </div>
+
+    <!-- Agregar este HTML después del div content-section -->
+    <div id="uploadModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Nueva publicación</h2>
+            <div class="preview-image-container">
+                <img id="previewImage" src="" alt="Vista previa">
+            </div>
+            <textarea id="imageDescription" placeholder="Escribe una descripción..."></textarea>
+            <input type="text" id="locationInput" placeholder="Agregar ubicación">
+            <button id="shareButton">Compartir</button>
+        </div>
+    </div>
+
+    <!-- Agregar este HTML para el modal de visualización de imagen -->
+    <div id="imageViewModal" class="image-view-modal">
+        <span class="close-view">&times;</span>
+        <div class="image-view-container">
+            <div class="image-section">
+                <img id="modalImage" src="" alt="Imagen">
+            </div>
+            <div class="image-info">
+                <div class="user-header">
+                    <div class="user-info-container">
+                        <img src="" alt="Foto de perfil" id="modalProfilePic" class="modal-profile-pic">
+                        <div class="user-details">
+                            <span id="modalUsername"></span>
+                            <span id="modalLocation" class="location-text"></span>
+                        </div>
+                    </div>
+                    <button class="three-dots-btn">•••</button>
+                </div>
+                
+                <div class="description-container">
+                    <p id="modalDescription" class="image-description"></p>
+                </div>
+                
+                <div class="interaction-buttons">
+                    <button class="like-btn" onclick="handleLike(this)" data-post-id="">
+                        <img src="img/corazon.png" alt="Like" class="icon heart">
+                        <span class="like-count">0</span>
+                    </button>
+                </div>
+                
+                <div class="comments-section">
+                    <div class="comments-container" id="commentsContainer">
+                        <!-- Los comentarios se cargarán aquí dinámicamente -->
+                    </div>
+                    <div class="comment-input-container">
+                        <input type="text" id="commentInput" placeholder="Añade un comentario...">
+                        <button id="postCommentBtn">Publicar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actualiza el menú de opciones -->
+    <div id="optionsMenu" class="options-menu">
+        <div class="option-item edit" onclick="editDescription()">Editar</div>
+        <div class="option-item delete" onclick="deleteImage()">Eliminar</div>
+    </div>
+
+    <!-- Modal para editar descripción -->
+    <div id="editModal" class="edit-modal">
+        <div class="edit-modal-content">
+            <h3>Editar descripción</h3>
+            <textarea id="editDescriptionText"></textarea>
+            <div class="edit-buttons">
+                <button onclick="document.getElementById('editModal').style.display='none'">Cancelar</button>
+                <button onclick="saveEdit()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+        }
+
+        .modal-content {
+            background-color: #000;
+            margin: 15% auto;
+            padding: 20px;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 12px;
+            color: white;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .preview-image-container {
+            width: 100%;
+            max-height: 300px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        #previewImage {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+
+        #imageDescription {
+            width: 100%;
+            min-height: 100px;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #1a1a1a;
+            border: none;
+            border-radius: 8px;
+            color: white;
+        }
+
+        #locationInput {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background-color: #1a1a1a;
+            border: none;
+            border-radius: 8px;
+            color: white;
+        }
+
+        #shareButton {
+            width: 100%;
+            padding: 12px;
+            background-color: #0095f6;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .image-view-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+        }
+
+        .image-view-container {
+            display: flex;
+            width: 90%;
+            max-width: 1200px;
+            height: 90vh;
+            margin: 20px auto;
+            background-color: white;
+            color: black;
+            border-radius: 4px;
+        }
+
+        .image-section {
+            flex: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: white;
+        }
+
+        .image-section img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .image-info {
+            flex: 1;
+            padding: 20px;
+            background-color: white;
+            color: black;
+            border-left: 1px solid #dbdbdb;
+            display: flex;
+            flex-direction: column;
+            min-width: 340px;
+        }
+
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px;
+            border-bottom: 1px solid #dbdbdb;
+        }
+
+        .user-info-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .modal-profile-pic {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-right: 12px;
+        }
+
+        .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .username-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .username-container span {
+            color: white;
+            font-weight: 600;
+        }
+
+        .location-text {
+            font-size: 12px;
+            color: #8e8e8e;
+        }
+
+        .close-view {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        .three-dots-btn {
+            background: none;
+            border: none;
+            color: black;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+            letter-spacing: 1px;
+            transform: none;
+        }
+
+        .three-dots-btn:hover {
+            opacity: 0.8;
+        }
+
+        .image-description {
+            color: black;
+            line-height: 1.5;
+        }
+
+        .options-menu {
+            display: none;
+            position: absolute;
+            background-color: white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            width: 400px;
+            z-index: 1002;
+        }
+
+        .option-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            color: black;
+            transition: background-color 0.2s;
+            text-align: center;
+            font-size: 14px;
+            border-bottom: 1px solid #dbdbdb;
+        }
+
+        .option-item:hover {
+            background-color: #f8f8f8;
+        }
+
+        .option-item.delete {
+            color: #ed4956;
+            font-weight: 500;
+        }
+
+        .edit-modal {
+            display: none;
+            position: fixed;
+            z-index: 1003;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+        }
+
+        .edit-modal-content {
+            background-color: #262626;
+            margin: 15% auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 12px;
+            color: white;
+        }
+
+        .edit-modal-content textarea {
+            width: 100%;
+            min-height: 100px;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #363636;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            resize: vertical;
+        }
+
+        .edit-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .edit-buttons button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .edit-buttons button:last-child {
+            background-color: #0095f6;
+            color: white;
+        }
+
+        .image-container {
+            position: relative;
+            width: calc(33.33% - 4px);
+            margin: 0;
+            aspect-ratio: 1;
+            overflow: hidden;
+        }
+
+        .gallery-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .gallery-image:hover {
+            transform: scale(1.05);
+        }
+
+        .image-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            padding: 10px;
+            justify-content: flex-start;
+        }
+
+        .interaction-buttons {
+            padding: 14px;
+            border-bottom: 1px solid #262626;
+        }
+
+        .like-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+        }
+
+        .like-btn img {
+            width: 24px;
+            height: 24px;
+        }
+
+        .comments-section {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            margin-top: 0;
+        }
+
+        .comments-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 14px;
+        }
+
+        .comment {
+            padding: 8px 0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .comment-user-pic {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+        }
+
+        .comment-content {
+            flex-grow: 1;
+        }
+
+        .comment-username {
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .comment-text {
+            color: #fff;
+        }
+
+        .comment-input-container {
+            border-top: 1px solid #262626;
+            padding: 14px;
+            display: flex;
+            gap: 10px;
+        }
+
+        #commentInput {
+            flex-grow: 1;
+            background-color: transparent;
+            border: none;
+            color: white;
+            padding: 8px;
+            font-size: 14px;
+        }
+
+        #postCommentBtn {
+            background: none;
+            border: none;
+            color: #0095f6;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        #postCommentBtn:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        .description-container {
+            padding: 14px;
+            border-bottom: 1px solid #262626;
+        }
+
+        .image-description {
+            color: white;
+            margin: 0;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        .three-dots-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0 10px;
+            margin-left: 10px;
+        }
+
+        .three-dots-btn:hover {
+            opacity: 0.8;
+        }
+
+        .username-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .options-menu {
+            position: absolute;
+            background-color: #262626;
+            border-radius: 12px;
+            overflow: hidden;
+            width: 400px;
+            z-index: 1002;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .option-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            color: white;
+            transition: background-color 0.2s;
+            text-align: center;
+            font-size: 14px;
+            border-bottom: 1px solid #363636;
+        }
+
+        .option-item:hover {
+            background-color: #363636;
+        }
+
+        .option-item.delete {
+            color: #ed4956;
+            font-weight: 500;
+        }
+
+        .edit-modal {
+            display: none;
+            position: fixed;
+            z-index: 1003;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+        }
+
+        .edit-modal-content {
+            background-color: #262626;
+            margin: 15% auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 12px;
+            color: white;
+        }
+
+        .edit-modal-content textarea {
+            width: 100%;
+            min-height: 100px;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #363636;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            resize: vertical;
+        }
+
+        .edit-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .edit-buttons button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .edit-buttons button:last-child {
+            background-color: #0095f6;
+            color: white;
+        }
+
+        /* Actualizar los estilos de texto y botones */
+        .comment-text {
+            color: black;
+        }
+
+        .comment-username {
+            color: black;
+        }
+
+        #commentInput {
+            color: black;
+            background-color: #fafafa;
+            border: 1px solid #dbdbdb;
+        }
+
+        #postCommentBtn {
+            color: #0095f6;
+        }
+
+        .interaction-buttons {
+            border-bottom: 1px solid #dbdbdb;
+        }
+
+        .like-btn {
+            color: black;
+        }
+
+        .like-count {
+            color: black;
+        }
+
+        .user-details span {
+            color: black;
+        }
+
+        .location-text {
+            color: #8e8e8e;
+        }
+
+        .three-dots-btn {
+            color: black;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+            letter-spacing: 1px;
+        }
+
+        .comment-input-container {
+            border-top: 1px solid #dbdbdb;
+        }
+
+        .comments-container {
+            border-top: 1px solid #dbdbdb;
+        }
+
+        .image-description {
+            color: black;
+        }
+
+        #modalUsername {
+            color: black;
+            font-weight: 600;
+        }
+
+        .user-info-container {
+            color: black;
+        }
+    </style>
+
+    <script>
+        // Variables globales
+        let currentUser = null;
+        const database = firebase.database();
+        const storage = firebase.storage();
+
+        // Funciones principales
+        async function loadUserProfile() {
+            try {
+                const user = firebase.auth().currentUser;
+                if (!user) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const userRef = database.ref('users/' + user.uid);
+                const snapshot = await userRef.once('value');
+                const userData = snapshot.val();
+
+                if (userData) {
+                    // Actualizar nombre de usuario y otros datos
+                    document.getElementById('nombreUsuario').textContent = userData.fullName;
+                    
+                    // Actualizar foto de perfil
+                    const profilePic = document.getElementById('profilePic');
+                    if (userData.photoURL) {
+                        profilePic.src = userData.photoURL;
+                    } else {
+                        profilePic.src = 'img/default-profile.jpg';
+                    }
+
+                    // Actualizar bio si existe
+                    if (userData.bio) {
+                        document.getElementById('userBio').textContent = userData.bio;
+                    }
+
+                    // Actualizar contadores
+                    document.querySelector('#publicaciones-count strong').textContent = userData.publicaciones || 0;
+                    document.querySelector('#seguidores-count strong').textContent = userData.seguidores || 0;
+                    document.querySelector('#seguidos-count strong').textContent = userData.seguidos || 0;
+                }
+            } catch (error) {
+                console.error('Error al cargar perfil:', error);
+                alert('Error al cargar los datos del perfil');
+            }
+        }
+
+        async function logout() {
+            try {
+                await firebase.auth().signOut();
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error('Error al cerrar sesión:', error);
+                showError('Error al cerrar sesión');
+            }
+        }
+
+        function showError(message) {
+            // Implementar según el diseño de tu UI
+            alert(message);
+        }
+
+        // Funciones para subir imagen
+        async function handleImageUpload(file, description, location) {
+            try {
+                const user = firebase.auth().currentUser;
+                if (!user) return;
+
+                // Mostrar algún indicador de carga
+                console.log('Subiendo imagen...');
+
+                // 1. Subir imagen a Storage
+                const timestamp = Date.now();
+                const storageRef = storage.ref(`posts/${timestamp}_${file.name}`);
+                const uploadTask = await storageRef.put(file);
+                const imageUrl = await uploadTask.ref.getDownloadURL();
+
+                // 2. Obtener datos del usuario
+                const userRef = database.ref(`users/${user.uid}`);
+                const userSnapshot = await userRef.once('value');
+                const userData = userSnapshot.val();
+
+                // 3. Crear el post en la base de datos
+                const newPost = {
+                    userId: user.uid,
+                    userName: userData.fullName || 'Usuario',
+                    userPhoto: userData.photoURL || 'img/default-profile.jpg',
+                    imageUrl: imageUrl,
+                    description: description || '',
+                    location: location || '',
+                    timestamp: timestamp,
+                    likes: 0
+                };
+
+                // 4. Guardar en la colección de posts
+                await database.ref('posts').push(newPost);
+
+                // 5. Actualizar el contador de publicaciones del usuario
+                await userRef.transaction((userData) => {
+                    if (userData) {
+                        userData.publicaciones = (userData.publicaciones || 0) + 1;
+                    }
+                    return userData;
+                });
+
+                // 6. Actualizar el contador en la UI
+                const publicacionesCount = document.querySelector('#publicaciones-count strong');
+                const currentCount = parseInt(publicacionesCount.textContent || '0');
+                publicacionesCount.textContent = currentCount + 1;
+
+                console.log('Imagen subida exitosamente');
+                return true;
+
+            } catch (error) {
+                console.error('Error al subir la imagen:', error);
+                throw error;
+            }
+        }
+
+        async function loadUserImages() {
+            try {
+                const user = firebase.auth().currentUser;
+                if (!user) return;
+
+                const postsRef = database.ref('posts');
+                const snapshot = await postsRef.orderByChild('userId').equalTo(user.uid).once('value');
+                
+                const gallery = document.getElementById('imageGallery');
+                gallery.innerHTML = '';
+
+                snapshot.forEach((childSnapshot) => {
+                    const post = childSnapshot.val();
+                    post.id = childSnapshot.key;
+
+                    const imgContainer = document.createElement('div');
+                    imgContainer.className = 'image-container';
+                    
+                    const img = document.createElement('img');
+                    img.src = post.imageUrl;
+                    img.className = 'gallery-image';
+                    img.alt = 'Imagen de galería';
+                    
+                    imgContainer.onclick = () => {
+                        const modal = document.getElementById('imageViewModal');
+                        const modalImage = document.getElementById('modalImage');
+                        const modalUsername = document.getElementById('modalUsername');
+                        const modalLocation = document.getElementById('modalLocation');
+                        const modalDescription = document.getElementById('modalDescription');
+                        const modalProfilePic = document.getElementById('modalProfilePic');
+                        const likeBtn = modal.querySelector('.like-btn');
+                        const threeDotsBtn = modal.querySelector('.three-dots-btn');
+
+                        // Actualizar contenido del modal
+                        modalImage.src = post.imageUrl;
+                        modalUsername.textContent = post.userName || 'Usuario';
+                        modalLocation.textContent = post.location || '';
+                        modalDescription.textContent = post.description || '';
+                        modalProfilePic.src = post.userPhoto || 'img/default-profile.jpg';
+                        
+                        // Actualizar ID del post actual
+                        modal.dataset.postId = post.id;
+                        
+                        // Mostrar/ocultar botón de tres puntos solo si es el propietario
+                        if (threeDotsBtn) {
+                            threeDotsBtn.style.display = post.userId === user.uid ? 'block' : 'none';
+                        }
+                        
+                        if (likeBtn) {
+                            likeBtn.dataset.postId = post.id;
+                            updateLikeUI(post.id);
+                        }
+
+                        loadComments(post.id);
+                        modal.style.display = 'block';
+                    };
+                    
+                    imgContainer.appendChild(img);
+                    gallery.appendChild(imgContainer);
+                });
+
+            } catch (error) {
+                console.error('Error al cargar im��genes:', error);
+                alert('Error al cargar las imágenes');
+            }
+        }
+
+        async function openImageView(post) {
+            try {
+                if (!post || !post.imageUrl) {
+                    console.error('Post inválido:', post);
+                    return;
+                }
+
+                console.log('Abriendo imagen:', post); // Debug
+
+                const modal = document.getElementById('imageViewModal');
+                if (!modal) {
+                    console.error('Modal no encontrado');
+                    return;
+                }
+
+                // Actualizar elementos del modal
+                const elements = {
+                    modalImage: document.getElementById('modalImage'),
+                    modalUsername: document.getElementById('modalUsername'),
+                    modalLocation: document.getElementById('modalLocation'),
+                    modalDescription: document.getElementById('modalDescription'),
+                    modalProfilePic: document.getElementById('modalProfilePic'),
+                    likeButton: modal.querySelector('.like-btn'),
+                    likeIcon: modal.querySelector('.icon.heart'),
+                    likeCount: modal.querySelector('.like-count')
+                };
+
+                // Verificar que todos los elementos existan
+                for (const [key, element] of Object.entries(elements)) {
+                    if (!element) {
+                        console.error(`Elemento ${key} no encontrado`);
+                        return;
+                    }
+                }
+
+                // Guardar el ID del post en el modal
+                modal.dataset.postId = post.id;
+                
+                // Actualizar contenido
+                elements.modalImage.src = post.imageUrl;
+                elements.modalUsername.textContent = post.userName || 'Usuario';
+                elements.modalLocation.textContent = post.location || '';
+                elements.modalDescription.textContent = post.description || '';
+                elements.modalProfilePic.src = post.userPhoto || 'img/default-profile.jpg';
+
+                if (elements.likeButton) {
+                    elements.likeButton.dataset.postId = post.id;
+                }
+
+                // Verificar estado del like
+                const user = firebase.auth().currentUser;
+                if (user) {
+                    const likesRef = firebase.database().ref(`likes/${user.uid}/${post.id}`);
+                    const snapshot = await likesRef.once('value');
+                    
+                    if (elements.likeIcon) {
+                        elements.likeIcon.src = snapshot.val() ? 'img/corazon-rojo.png' : 'img/corazon.png';
+                    }
+                    
+                    // Actualizar contador de likes
+                    const postRef = firebase.database().ref(`posts/${post.id}/likes`);
+                    const likesSnapshot = await postRef.once('value');
+                    if (elements.likeCount) {
+                        elements.likeCount.textContent = likesSnapshot.val() || 0;
+                    }
+                }
+
+                // Cargar comentarios
+                await loadComments(post.id);
+
+                // Mostrar el modal
+                modal.style.display = 'block';
+
+            } catch (error) {
+                console.error('Error detallado al abrir la imagen:', error);
+                console.error('Stack trace:', error.stack);
+            }
+        }
+
+        // Agregar event listeners para el modal
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('imageViewModal');
+            const closeBtn = modal.querySelector('.close-view');
+
+            closeBtn.onclick = () => {
+                modal.style.display = 'none';
+            };
+
+            // Cerrar modal al hacer clic fuera de la imagen
+            window.onclick = (event) => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            };
+        });
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            firebase.auth().onAuthStateChanged((user) => {
+                if (user) {
+                    loadUserProfile();
+                    loadUserImages(); // Cargar imágenes al iniciar
+                } else {
+                    window.location.href = 'login.html';
+                }
+            });
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', logout);
+
+        document.getElementById('editProfileBtn').addEventListener('click', () => {
+            window.location.href = 'editarPerfil.html';
+        });
+
+        // Modificar el event listener de imageInput
+        document.getElementById('imageInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                // Mostrar preview de la imagen
+                const previewImage = document.getElementById('previewImage');
+                previewImage.src = URL.createObjectURL(file);
+                
+                // Mostrar el modal
+                document.getElementById('uploadModal').style.display = 'block';
+            }
+        });
+
+        // Agregar nuevos event listeners para el modal
+        document.querySelector('.close').addEventListener('click', () => {
+            document.getElementById('uploadModal').style.display = 'none';
+            document.getElementById('imageInput').value = '';
+        });
+
+        document.getElementById('shareButton').addEventListener('click', async () => {
+            const file = document.getElementById('imageInput').files[0];
+            const description = document.getElementById('imageDescription').value;
+            const location = document.getElementById('locationInput').value;
+            
+            try {
+                // Mostrar indicador de carga
+                alert('Subiendo imagen...');
+                
+                // Subir la imagen y obtener los datos del post
+                await handleImageUpload(file, description, location);
+                
+                // Cerrar modal y limpiar campos
+                document.getElementById('uploadModal').style.display = 'none';
+                document.getElementById('imageInput').value = '';
+                document.getElementById('imageDescription').value = '';
+                document.getElementById('locationInput').value = '';
+                
+                // Cargar las imágenes inmediatamente después de subir
+                await loadUserImages();
+                
+                alert('Imagen subida con éxito');
+            } catch (error) {
+                console.error('Error al subir imagen:', error);
+                alert('Error al subir la imagen');
+            }
+        });
+
+        // Asegúrate de que la imagen se cargue correctamente
+        document.getElementById('profilePic').onerror = function() {
+            this.src = 'img/default-profile.jpg';
+        };
+
+        // Agregar funciones para eliminar y editar posts
+        async function deleteImage() {
+            try {
+                const modal = document.getElementById('imageViewModal');
+                const postId = modal.dataset.postId;
+                
+                if (!postId) return;
+
+                if (confirm('¿Estás seguro de que deseas eliminar esta publicación?')) {
+                    const user = firebase.auth().currentUser;
+                    const postRef = database.ref(`posts/${postId}`);
+                    
+                    // Verificar que el usuario sea el propietario
+                    const post = await postRef.once('value');
+                    if (post.val().userId !== user.uid) {
+                        alert('No tienes permiso para eliminar esta publicación');
+                        return;
+                    }
+
+                    await postRef.remove();
+                    
+                    // Actualizar el contador de publicaciones
+                    const userRef = database.ref(`users/${user.uid}`);
+                    await userRef.transaction((userData) => {
+                        if (userData && userData.publicaciones > 0) {
+                            userData.publicaciones--;
+                        }
+                        return userData;
+                    });
+
+                    // Actualizar UI
+                    modal.style.display = 'none';
+                    document.getElementById('optionsMenu').style.display = 'none';
+                    await loadUserImages();
+                    
+                    // Actualizar el contador en la UI
+                    const publicacionesCount = document.querySelector('#publicaciones-count strong');
+                    const currentCount = parseInt(publicacionesCount.textContent || '0');
+                    publicacionesCount.textContent = Math.max(0, currentCount - 1);
+                }
+            } catch (error) {
+                console.error('Error al eliminar la imagen:', error);
+                alert('Error al eliminar la publicación');
+            }
+        }
+
+        async function editDescription() {
+            const modal = document.getElementById('imageViewModal');
+            const postId = modal.dataset.postId;
+            const description = document.getElementById('modalDescription').textContent;
+            
+            const editModal = document.getElementById('editModal');
+            document.getElementById('editDescriptionText').value = description;
+            editModal.style.display = 'block';
+            document.getElementById('optionsMenu').style.display = 'none';
+        }
+
+        async function saveEdit() {
+            try {
+                const modal = document.getElementById('imageViewModal');
+                const postId = modal.dataset.postId;
+                const newDescription = document.getElementById('editDescriptionText').value;
+
+                const user = firebase.auth().currentUser;
+                const postRef = database.ref(`posts/${postId}`);
+                
+                // Verificar que el usuario sea el propietario
+                const post = await postRef.once('value');
+                if (post.val().userId !== user.uid) {
+                    alert('No tienes permiso para editar esta publicación');
+                    return;
+                }
+
+                await postRef.update({
+                    description: newDescription
+                });
+
+                document.getElementById('editModal').style.display = 'none';
+                document.getElementById('modalDescription').textContent = newDescription;
+            } catch (error) {
+                console.error('Error al guardar los cambios:', error);
+                alert('Error al guardar los cambios');
+            }
+        }
+
+        // Event listener para el botón de tres puntos
+        document.addEventListener('DOMContentLoaded', () => {
+            const optionsMenu = document.getElementById('optionsMenu');
+            
+            // Delegación de eventos para el botón de tres puntos
+            document.body.addEventListener('click', function(e) {
+                if (e.target.classList.contains('three-dots-btn')) {
+                    e.stopPropagation();
+                    const currentDisplay = optionsMenu.style.display;
+                    
+                    if (currentDisplay === 'block') {
+                        optionsMenu.style.display = 'none';
+                    } else {
+                        optionsMenu.style.display = 'block';
+                        
+                        // Posicionar el menú debajo del botón
+                        const buttonRect = e.target.getBoundingClientRect();
+                        optionsMenu.style.top = `${buttonRect.bottom + window.scrollY + 10}px`;
+                        optionsMenu.style.left = `${buttonRect.left + window.scrollX - optionsMenu.offsetWidth + buttonRect.width}px`;
+                        optionsMenu.style.transform = 'none';
+                    }
+                } else if (!optionsMenu.contains(e.target)) {
+                    optionsMenu.style.display = 'none';
+                }
+            });
+        });
+
+        // Función para eliminar imagen
+        async function deleteImage() {
+            try {
+                const modal = document.getElementById('imageViewModal');
+                const postId = modal.dataset.postId;
+                
+                if (!postId) return;
+
+                if (confirm('¿Estás seguro de que deseas eliminar esta publicación?')) {
+                    const user = firebase.auth().currentUser;
+                    const postRef = database.ref(`posts/${postId}`);
+                    
+                    // Verificar que el usuario sea el propietario
+                    const post = await postRef.once('value');
+                    if (post.val().userId !== user.uid) {
+                        alert('No tienes permiso para eliminar esta publicación');
+                        return;
+                    }
+
+                    await postRef.remove();
+                    
+                    // Actualizar el contador de publicaciones
+                    const userRef = database.ref(`users/${user.uid}`);
+                    await userRef.transaction((userData) => {
+                        if (userData && userData.publicaciones > 0) {
+                            userData.publicaciones--;
+                        }
+                        return userData;
+                    });
+
+                    // Actualizar UI
+                    modal.style.display = 'none';
+                    document.getElementById('optionsMenu').style.display = 'none';
+                    await loadUserImages();
+                    
+                    // Actualizar el contador en la UI
+                    const publicacionesCount = document.querySelector('#publicaciones-count strong');
+                    const currentCount = parseInt(publicacionesCount.textContent || '0');
+                    publicacionesCount.textContent = Math.max(0, currentCount - 1);
+                }
+            } catch (error) {
+                console.error('Error al eliminar la imagen:', error);
+                alert('Error al eliminar la publicación');
+            }
+        }
+
+        // Función para editar descripción
+        function editDescription() {
+            const modal = document.getElementById('imageViewModal');
+            const postId = modal.dataset.postId;
+            const description = document.getElementById('modalDescription').textContent;
+            
+            const editModal = document.getElementById('editModal');
+            document.getElementById('editDescriptionText').value = description;
+            editModal.style.display = 'block';
+            document.getElementById('optionsMenu').style.display = 'none';
+        }
+
+        // Función para guardar la edición
+        async function saveEdit() {
+            try {
+                const modal = document.getElementById('imageViewModal');
+                const postId = modal.dataset.postId;
+                const newDescription = document.getElementById('editDescriptionText').value;
+
+                const user = firebase.auth().currentUser;
+                const postRef = database.ref(`posts/${postId}`);
+                
+                // Verificar que el usuario sea el propietario
+                const post = await postRef.once('value');
+                if (post.val().userId !== user.uid) {
+                    alert('No tienes permiso para editar esta publicación');
+                    return;
+                }
+
+                await postRef.update({
+                    description: newDescription
+                });
+
+                document.getElementById('editModal').style.display = 'none';
+                document.getElementById('modalDescription').textContent = newDescription;
+            } catch (error) {
+                console.error('Error al guardar los cambios:', error);
+                alert('Error al guardar los cambios');
+            }
+        }
+
+        // Función para manejar likes
+        async function handleLike(button) {
+            try {
+                const user = firebase.auth().currentUser;
+                if (!user) {
+                    alert('Debes iniciar sesión para dar like');
+                    return;
+                }
+
+                const postId = button.dataset.postId;
+                const heartIcon = button.querySelector('.icon.heart');
+                const likeCount = button.querySelector('.like-count');
+                
+                console.log('Manejando like para post:', postId); // Debug log
+
+                const likesRef = firebase.database().ref(`likes/${user.uid}/${postId}`);
+                const postRef = firebase.database().ref(`posts/${postId}`);
+
+                // Obtener el estado actual del like
+                const snapshot = await likesRef.once('value');
+                const hasLiked = snapshot.val();
+
+                if (hasLiked) {
+                    // Quitar like
+                    await likesRef.remove();
+                    heartIcon.src = 'img/corazon.png';
+                    
+                    // Actualizar contador en el post
+                    await postRef.child('likes').transaction(currentLikes => {
+                        return (currentLikes || 1) - 1;
+                    });
+                } else {
+                    // Dar like
+                    await likesRef.set(true);
+                    heartIcon.src = 'img/corazon-rojo.png';
+                    
+                    // Actualizar contador en el post
+                    await postRef.child('likes').transaction(currentLikes => {
+                        return (currentLikes || 0) + 1;
+                    });
+                }
+
+                // Actualizar el contador en la UI
+                const updatedLikes = await postRef.child('likes').once('value');
+                likeCount.textContent = updatedLikes.val() || 0;
+
+                console.log('Like actualizado exitosamente'); // Debug log
+
+            } catch (error) {
+                console.error('Error al manejar el like:', error);
+                alert('Error al procesar el like. Por favor, intenta de nuevo.');
+            }
+        }
+
+        // Función auxiliar para actualizar la UI de likes
+        async function updateLikeUI(postId) {
+            try {
+                const user = firebase.auth().currentUser;
+                if (!user) return;
+
+                const likeBtn = document.querySelector('.like-btn');
+                const heartIcon = likeBtn.querySelector('.icon.heart');
+                const likeCount = likeBtn.querySelector('.like-count');
+
+                // Verificar si el usuario dio like
+                const likesRef = database.ref(`likes/${user.uid}/${postId}`);
+                const hasLiked = await likesRef.once('value');
+                
+                // Actualizar icono
+                heartIcon.src = hasLiked.val() ? 'img/corazon-rojo.png' : 'img/corazon.png';
+                
+                // Obtener y actualizar contador de likes
+                const postRef = database.ref(`posts/${postId}/likes`);
+                const likesSnapshot = await postRef.once('value');
+                likeCount.textContent = likesSnapshot.val() || 0;
+            } catch (error) {
+                console.error('Error al actualizar UI de likes:', error);
+            }
+        }
+
+        // Función para manejar comentarios
+        async function postComment(postId) {
+            try {
+                const user = firebase.auth().currentUser;
+                if (!user) return;
+                
+                const commentInput = document.getElementById('commentInput');
+                const commentText = commentInput.value.trim();
+                
+                if (!commentText) return;
+                
+                const userRef = database.ref(`users/${user.uid}`);
+                const userSnapshot = await userRef.once('value');
+                const userData = userSnapshot.val();
+                
+                const newComment = {
+                    userId: user.uid,
+                    userName: userData.fullName,
+                    userPhoto: userData.photoURL || 'img/default-profile.jpg',
+                    text: commentText,
+                    timestamp: Date.now()
+                };
+                
+                await database.ref(`comments/${postId}`).push(newComment);
+                
+                // Limpiar input y actualizar comentarios
+                commentInput.value = '';
+                await loadComments(postId);
+            } catch (error) {
+                console.error('Error al publicar comentario:', error);
+            }
+        }
+
+        async function loadComments(postId) {
+            try {
+                const commentsRef = database.ref(`comments/${postId}`);
+                const snapshot = await commentsRef.orderByChild('timestamp').once('value');
+                
+                const commentsContainer = document.getElementById('commentsContainer');
+                commentsContainer.innerHTML = '';
+                
+                const comments = [];
+                snapshot.forEach((childSnapshot) => {
+                    comments.push(childSnapshot.val());
+                });
+                
+                // Mostrar comentarios del más reciente al más antiguo
+                comments.reverse().forEach(comment => {
+                    const commentElement = document.createElement('div');
+                    commentElement.className = 'comment';
+                    commentElement.innerHTML = `
+                        <img src="${comment.userPhoto}" alt="Foto de perfil" class="comment-user-pic">
+                        <div class="comment-content">
+                            <span class="comment-username">${comment.userName}</span>
+                            <span class="comment-text">${comment.text}</span>
+                        </div>
+                    `;
+                    commentsContainer.appendChild(commentElement);
+                });
+            } catch (error) {
+                console.error('Error al cargar comentarios:', error);
+            }
+        }
+
+        // Agregar manejador de errores para las imágenes
+        document.addEventListener('DOMContentLoaded', () => {
+            const modalImage = document.getElementById('modalImage');
+            if (modalImage) {
+                modalImage.onerror = function() {
+                    console.error('Error al cargar la imagen en el modal');
+                    this.src = 'img/error-image.png'; // Imagen de respaldo en caso de error
+                };
+            }
+        });
+
+        // Agregar los event listeners para el menú de opciones
+        document.addEventListener('DOMContentLoaded', () => {
+            const optionsMenu = document.getElementById('optionsMenu');
+            
+            // Event listener para el botón de tres puntos
+            document.querySelector('.three-dots-btn').addEventListener('click', function(e) {
+                e.stopPropagation();
+                const currentDisplay = optionsMenu.style.display;
+                optionsMenu.style.display = currentDisplay === 'block' ? 'none' : 'block';
+                
+                // Posicionar el menú en el centro de la pantalla
+                optionsMenu.style.top = '50%';
+                optionsMenu.style.left = '50%';
+                optionsMenu.style.transform = 'translate(-50%, -50%)';
+            });
+
+            // Cerrar el menú al hacer clic fuera
+            document.addEventListener('click', function(e) {
+                if (!optionsMenu.contains(e.target) && 
+                    !e.target.classList.contains('three-dots-btn')) {
+                    optionsMenu.style.display = 'none';
+                }
+            });
+        });
+
+        // Agregar las funciones para eliminar y editar
+        async function deleteImage() {
+            try {
+                const modal = document.getElementById('imageViewModal');
+                const postId = modal.dataset.postId;
+                
+                if (!postId) return;
+
+                if (confirm('¿Estás seguro de que deseas eliminar esta publicación?')) {
+                    const user = firebase.auth().currentUser;
+                    const postRef = database.ref(`posts/${postId}`);
+                    
+                    // Verificar que el usuario sea el propietario
+                    const post = await postRef.once('value');
+                    if (post.val().userId !== user.uid) {
+                        alert('No tienes permiso para eliminar esta publicación');
+                        return;
+                    }
+
+                    await postRef.remove();
+                    
+                    // Actualizar el contador de publicaciones
+                    const userRef = database.ref(`users/${user.uid}`);
+                    await userRef.transaction((userData) => {
+                        if (userData && userData.publicaciones > 0) {
+                            userData.publicaciones--;
+                        }
+                        return userData;
+                    });
+
+                    // Actualizar UI
+                    modal.style.display = 'none';
+                    document.getElementById('optionsMenu').style.display = 'none';
+                    await loadUserImages();
+                    
+                    // Actualizar el contador en la UI
+                    const publicacionesCount = document.querySelector('#publicaciones-count strong');
+                    const currentCount = parseInt(publicacionesCount.textContent || '0');
+                    publicacionesCount.textContent = Math.max(0, currentCount - 1);
+                }
+            } catch (error) {
+                console.error('Error al eliminar la imagen:', error);
+                alert('Error al eliminar la publicación');
+            }
+        }
+
+        async function editDescription() {
+            const modal = document.getElementById('imageViewModal');
+            const postId = modal.dataset.postId;
+            const description = document.getElementById('modalDescription').textContent;
+            
+            const editModal = document.getElementById('editModal');
+            document.getElementById('editDescriptionText').value = description;
+            editModal.style.display = 'block';
+            document.getElementById('optionsMenu').style.display = 'none';
+        }
+
+        async function saveEdit() {
+            try {
+                const modal = document.getElementById('imageViewModal');
+                const postId = modal.dataset.postId;
+                const newDescription = document.getElementById('editDescriptionText').value;
+
+                const user = firebase.auth().currentUser;
+                const postRef = database.ref(`posts/${postId}`);
+                
+                // Verificar que el usuario sea el propietario
+                const post = await postRef.once('value');
+                if (post.val().userId !== user.uid) {
+                    alert('No tienes permiso para editar esta publicación');
+                    return;
+                }
+
+                await postRef.update({
+                    description: newDescription
+                });
+
+                document.getElementById('editModal').style.display = 'none';
+                document.getElementById('modalDescription').textContent = newDescription;
+            } catch (error) {
+                console.error('Error al guardar los cambios:', error);
+                alert('Error al guardar los cambios');
+            }
+        }
+    </script>
+</body>
+</html>
